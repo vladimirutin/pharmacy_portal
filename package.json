@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://pharmacist.medivend.app",
+  "homepage": "https://pharmacy.medivend.app",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
