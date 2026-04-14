@@ -880,8 +880,7 @@ function App() {
         {/* Tab Navigation */}
         <div className="flex items-center gap-1 mb-5 bg-white/[0.03] rounded-xl border border-white/[0.06] p-1">
           {[
-            { id: 'profile', label: '🏥 Profile', },
-            { id: 'security', label: '🔒 Security', },
+            { id: 'profile', label: '🏥 Profile & Security', },
             { id: 'support', label: '🎫 Support', },
           ].map(tab => (
             <button
@@ -894,99 +893,100 @@ function App() {
           ))}
         </div>
 
-        {/* ─── Profile Tab ─── */}
+        {/* ─── Profile & Security Tab ─── */}
         {settingsTab === 'profile' && (
-          <div className="glass-card p-5 sm:p-6 animate-scale-in">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/15 flex items-center justify-center"><span className="text-lg">🏥</span></div>
-              <div>
-                <h2 className="text-base font-bold text-white">Pharmacy Profile</h2>
-                <p className="text-[11px] text-slate-500">Update your pharmacy information</p>
+          <div className="space-y-4">
+            {/* Pharmacy Profile Section */}
+            <div className="glass-card p-5 sm:p-6 animate-scale-in">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/15 flex items-center justify-center"><span className="text-lg">🏥</span></div>
+                <div>
+                  <h2 className="text-base font-bold text-white">Pharmacy Profile</h2>
+                  <p className="text-[11px] text-slate-500">Update your pharmacy information</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {/* Read-only info */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[
+                    { label: 'Registered Name', value: currentUser?.name, icon: '👤' },
+                    { label: 'Email Address', value: currentUser?.email, icon: '📧' },
+                    { label: 'PRC License', value: currentUser?.licenseNumber, icon: '🏅' },
+                  ].map(field => (
+                    <div key={field.label} className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.05]">
+                      <p className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-500 mb-1">{field.icon} {field.label}</p>
+                      <p className="text-sm text-slate-300 font-medium">{field.value || '—'}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Editable pharmacy name */}
+                <div>
+                  <label className="block text-[9px] font-black uppercase tracking-[0.15em] mb-2 text-slate-500">🏥 Pharmacy Name</label>
+                  <input
+                    type="text"
+                    value={profileForm.pharmacyName}
+                    onChange={(e) => setProfileForm({ pharmacyName: e.target.value })}
+                    className="input-field"
+                    placeholder="Enter pharmacy name"
+                  />
+                </div>
+
+                <button onClick={handleSaveProfile} disabled={profileSaving || !profileForm.pharmacyName.trim()}
+                  className="btn-emerald px-6 py-2.5 text-sm flex items-center gap-2">
+                  {profileSaving ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : '💾'} Save Changes
+                </button>
               </div>
             </div>
 
-            <div className="space-y-4">
-              {/* Read-only info */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {[
-                  { label: 'Registered Name', value: currentUser?.name, icon: '👤' },
-                  { label: 'Email Address', value: currentUser?.email, icon: '📧' },
-                  { label: 'PRC License', value: currentUser?.licenseNumber, icon: '🏅' },
-                ].map(field => (
-                  <div key={field.label} className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-                    <p className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-500 mb-1">{field.icon} {field.label}</p>
-                    <p className="text-sm text-slate-300 font-medium">{field.value || '—'}</p>
-                  </div>
-                ))}
+            {/* Change Password Section */}
+            <div className="glass-card p-5 sm:p-6 animate-scale-in" style={{ animationDelay: '0.1s' }}>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/15 flex items-center justify-center"><span className="text-lg">🔒</span></div>
+                <div>
+                  <h2 className="text-base font-bold text-white">Change Password</h2>
+                  <p className="text-[11px] text-slate-500">Update your account password</p>
+                </div>
               </div>
 
-              {/* Editable pharmacy name */}
-              <div>
-                <label className="block text-[9px] font-black uppercase tracking-[0.15em] mb-2 text-slate-500">🏥 Pharmacy Name</label>
-                <input
-                  type="text"
-                  value={profileForm.pharmacyName}
-                  onChange={(e) => setProfileForm({ pharmacyName: e.target.value })}
-                  className="input-field"
-                  placeholder="Enter pharmacy name"
-                />
-              </div>
+              <div className="space-y-4 max-w-md">
+                <div>
+                  <label className="block text-[9px] font-black uppercase tracking-[0.15em] mb-2 text-slate-500">Current Password</label>
+                  <input 
+                    type="password" 
+                    value={passwordForm.current} 
+                    onChange={(e) => setPasswordForm(f => ({ ...f, current: e.target.value }))}
+                    className="input-field" 
+                    placeholder="Enter current password" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] font-black uppercase tracking-[0.15em] mb-2 text-slate-500">New Password</label>
+                  <input 
+                    type="password" 
+                    value={passwordForm.newPw} 
+                    onChange={(e) => setPasswordForm(f => ({ ...f, newPw: e.target.value }))}
+                    className="input-field" 
+                    placeholder="Enter new password (min 6 chars)" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] font-black uppercase tracking-[0.15em] mb-2 text-slate-500">Confirm New Password</label>
+                  <input 
+                    type="password" 
+                    value={passwordForm.confirm} 
+                    onChange={(e) => setPasswordForm(f => ({ ...f, confirm: e.target.value }))}
+                    className="input-field" 
+                    placeholder="Re-enter new password" 
+                  />
+                </div>
 
-              <button onClick={handleSaveProfile} disabled={profileSaving || !profileForm.pharmacyName.trim()}
-                className="btn-emerald px-6 py-2.5 text-sm flex items-center gap-2">
-                {profileSaving ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : '💾'} Save Changes
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ─── Security Tab ─── */}
-        {settingsTab === 'security' && (
-          <div className="glass-card p-5 sm:p-6 animate-scale-in">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/15 flex items-center justify-center"><span className="text-lg">🔒</span></div>
-              <div>
-                <h2 className="text-base font-bold text-white">Change Password</h2>
-                <p className="text-[11px] text-slate-500">Update your account password</p>
+                <button onClick={handleChangePassword} disabled={passwordSaving}
+                  className="btn-indigo px-6 py-2.5 text-sm flex items-center gap-2">
+                  {passwordSaving ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : '🔑'} Update Password
+                </button>
               </div>
-            </div>
-
-            <div className="space-y-4 max-w-md">
-              <div>
-                <label className="block text-[9px] font-black uppercase tracking-[0.15em] mb-2 text-slate-500">Current Password</label>
-                <input 
-                  type="password" 
-                  value={passwordForm.current} 
-                  onChange={(e) => setPasswordForm(f => ({ ...f, current: e.target.value }))}
-                  className="input-field" 
-                  placeholder="Enter current password" 
-                />
-              </div>
-              <div>
-                <label className="block text-[9px] font-black uppercase tracking-[0.15em] mb-2 text-slate-500">New Password</label>
-                <input 
-                  type="password" 
-                  value={passwordForm.newPw} 
-                  onChange={(e) => setPasswordForm(f => ({ ...f, newPw: e.target.value }))}
-                  className="input-field" 
-                  placeholder="Enter new password (min 6 chars)" 
-                />
-              </div>
-              <div>
-                <label className="block text-[9px] font-black uppercase tracking-[0.15em] mb-2 text-slate-500">Confirm New Password</label>
-                <input 
-                  type="password" 
-                  value={passwordForm.confirm} 
-                  onChange={(e) => setPasswordForm(f => ({ ...f, confirm: e.target.value }))}
-                  className="input-field" 
-                  placeholder="Re-enter new password" 
-                />
-              </div>
-
-              <button onClick={handleChangePassword} disabled={passwordSaving}
-                className="btn-indigo px-6 py-2.5 text-sm flex items-center gap-2">
-                {passwordSaving ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : '🔑'} Update Password
-              </button>
             </div>
           </div>
         )}

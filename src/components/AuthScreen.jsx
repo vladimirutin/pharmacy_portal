@@ -12,9 +12,6 @@ export default function AuthScreen({ onLogin }) {
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockoutTimer, setLockoutTimer] = useState(0);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [forgotLoading, setForgotLoading] = useState(false);
-  const [forgotResult, setForgotResult] = useState(null);
   const fileInputRef = useRef(null);
   const selfieInputRef = useRef(null);
   
@@ -207,36 +204,6 @@ export default function AuthScreen({ onLogin }) {
     setSelfieImage(null); setSelfiePreview(null);
     setShowPassword(false);
   };
-
-  const handleForgotPassword = async (e) => {
-    e.preventDefault();
-    if (!forgotEmail.trim()) return;
-    setForgotLoading(true);
-    setForgotResult(null);
-    try {
-      const q = query(
-        collection(db, 'artifacts', 'medivend-local', 'public', 'data', 'pharmacists'),
-        where('email', '==', forgotEmail.trim())
-      );
-      const snapshot = await getDocs(q);
-      if (snapshot.empty) {
-        setForgotResult({ type: 'error', message: 'No account found with this email address.' });
-      } else {
-        const userData = snapshot.docs[0].data();
-        const pw = userData.password || '';
-        const hint = pw.length > 2
-          ? pw.charAt(0) + '•'.repeat(pw.length - 2) + pw.charAt(pw.length - 1)
-          : '••••';
-        setForgotResult({ type: 'success', message: `Your password hint: ${hint}`, fullPw: pw });
-      }
-    } catch (err) {
-      console.error('Forgot password error:', err);
-      setForgotResult({ type: 'error', message: 'Connection error. Please try again.' });
-    }
-    setForgotLoading(false);
-  };
-
-  const [showRevealedPw, setShowRevealedPw] = useState(false);
 
   const fieldInputClass = "w-full pl-10 pr-4 py-3 rounded-xl border text-sm font-medium outline-none transition-all duration-200 bg-white/[0.04] border-white/[0.08] text-white placeholder-slate-600 hover:border-white/[0.15] focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 focus:shadow-[0_0_20px_rgba(16,185,129,0.08)]";
   const fieldInputClassNoIcon = "w-full pl-4 pr-4 py-3 rounded-xl border text-sm font-medium outline-none transition-all duration-200 bg-white/[0.04] border-white/[0.08] text-white placeholder-slate-600 hover:border-white/[0.15] focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 focus:shadow-[0_0_20px_rgba(16,185,129,0.08)]";
@@ -538,94 +505,21 @@ export default function AuthScreen({ onLogin }) {
 
       {/* ════════════ FORGOT PASSWORD MODAL ════════════ */}
       {showForgotPassword && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-modal-fade" style={{ backgroundColor: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(10px)' }}>
-          <div className="animate-scale-in w-full max-w-md">
-            <div className="rounded-2xl border border-emerald-500/20 bg-[#0F1729] overflow-hidden shadow-2xl" style={{ boxShadow: '0 0 80px rgba(16, 185, 129, 0.08)' }}>
-              {/* Header */}
-              <div className="bg-gradient-to-r from-emerald-600/15 to-teal-600/15 border-b border-emerald-500/15 px-5 py-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center text-xl flex-shrink-0">🔑</div>
-                    <div>
-                      <h2 className="text-base font-bold text-emerald-300">Password Recovery</h2>
-                      <p className="text-[11px] text-emerald-400/60 mt-0.5">Retrieve your account password</p>
-                    </div>
-                  </div>
-                  <button onClick={() => setShowForgotPassword(false)} className="p-1.5 rounded-lg hover:bg-white/[0.06] text-slate-500 hover:text-white transition-all text-lg">✕</button>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-lg p-4 animate-modal-fade">
+          <div className="auth-card bg-[#0d1220] w-full max-w-sm border border-emerald-500/20 overflow-hidden" style={{ borderRadius: 28, boxShadow: '0 0 80px rgba(16, 185, 129, 0.08)' }}>
+            <div className="p-8 text-center relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-600/15 to-teal-600/15 opacity-50" />
+              <div className="relative z-10">
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5 mx-auto bg-gradient-to-br from-emerald-500 to-teal-600 shadow-[0_8px_32px_rgba(16,185,129,0.35)]">
+                  <span className="text-3xl">🔑</span>
                 </div>
-              </div>
-
-              {/* Body */}
-              <div className="px-5 py-5">
-                <form onSubmit={handleForgotPassword} className="space-y-3.5">
-                  <div>
-                    <label className="block text-[9px] font-black uppercase tracking-[0.15em] mb-2 text-slate-500">Registered Email</label>
-                    <div className="relative group">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-400 transition-colors z-10 text-sm">📧</span>
-                      <input
-                        type="email"
-                        value={forgotEmail}
-                        onChange={(e) => setForgotEmail(e.target.value)}
-                        className={fieldInputClass}
-                        placeholder="Enter your registered email"
-                        required
-                        autoFocus
-                      />
-                    </div>
-                  </div>
-
-                  {forgotResult && (
-                    <div className={`p-3.5 rounded-xl border text-sm flex items-start gap-2.5 ${
-                      forgotResult.type === 'error'
-                        ? 'bg-rose-500/10 border-rose-500/20 text-rose-300'
-                        : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
-                    }`}>
-                      <span className="flex-shrink-0 mt-0.5">{forgotResult.type === 'error' ? '⚠️' : '✅'}</span>
-                      <div className="flex-1">
-                        <p className="text-[13px]">{forgotResult.message}</p>
-                        {forgotResult.fullPw && (
-                          <div className="mt-2">
-                            <button
-                              type="button"
-                              onClick={() => setShowRevealedPw(!showRevealedPw)}
-                              className="text-[11px] text-emerald-400 hover:text-emerald-300 font-bold transition-colors"
-                            >
-                              {showRevealedPw ? '🙈 Hide password' : '👁️ Reveal full password'}
-                            </button>
-                            {showRevealedPw && (
-                              <div className="mt-1.5 px-3 py-2 rounded-lg bg-white/[0.05] border border-white/[0.08] font-mono text-sm text-white select-all">
-                                {forgotResult.fullPw}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  <button
-                    type="submit"
-                    disabled={forgotLoading || !forgotEmail.trim()}
-                    className="w-full relative overflow-hidden text-white font-bold rounded-2xl shadow-lg transition-all duration-200 active:scale-[0.96] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 px-6 py-3 text-sm"
-                    style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%)', boxShadow: '0 8px 32px rgba(16,185,129,0.25)' }}
-                  >
-                    {forgotLoading ? (
-                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <span className="relative z-10 flex items-center gap-2">🔍 Look Up Password</span>
-                    )}
-                  </button>
-                </form>
-
-                <div className="mt-3 text-center">
-                  <button
-                    type="button"
-                    onClick={() => setShowForgotPassword(false)}
-                    className="text-[12px] text-slate-500 hover:text-white transition-colors"
-                  >
-                    ← Back to sign in
-                  </button>
-                </div>
+                <h3 className="text-xl font-black text-white mb-2">Forgot Password?</h3>
+                <p className="text-sm text-slate-400 leading-relaxed mb-6">
+                  For security reasons, please contact our customer service department at <span className="text-emerald-400 font-bold whitespace-nowrap">09273523900</span> for further assistance.
+                </p>
+                <button type="button" onClick={() => setShowForgotPassword(false)} className="w-full justify-center py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-[0_8px_32px_rgba(16,185,129,0.25)] transition-all">
+                  Got it
+                </button>
               </div>
             </div>
           </div>
