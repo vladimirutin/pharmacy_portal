@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Background Options Preview</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #060a14; font-family: -apple-system, system-ui, sans-serif; color: white; padding: 30px; }
+  h1 { text-align: center; font-size: 28px; margin-bottom: 8px; }
+  .subtitle { text-align: center; color: #64748b; margin-bottom: 40px; font-size: 14px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 1000px; margin: 0 auto; }
+  .option { border-radius: 20px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); }
+  .option:last-child { grid-column: 1 / -1; max-width: 488px; margin: 0 auto; width: 100%; }
+  .bg-box { width: 100%; height: 280px; position: relative; overflow: hidden; }
+  .label { padding: 16px 20px; background: rgba(255,255,255,0.03); border-top: 1px solid rgba(255,255,255,0.06); }
+  .label h3 { font-size: 16px; font-weight: 800; margin-bottom: 4px; }
+  .label p { font-size: 12px; color: #64748b; }
+  .num { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 8px; background: linear-gradient(135deg, #10b981, #059669); font-size: 12px; font-weight: 800; margin-right: 8px; }
+
+  /* ═══ OPTION 1: Bokeh Glow Orbs ═══ */
+  .bg1 {
+    background: #0B0F19;
+  }
+  .bg1::before, .bg1::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(60px);
+  }
+  .bg1::before {
+    width: 200px; height: 200px;
+    top: 20%; left: 15%;
+    background: radial-gradient(circle, rgba(16,185,129,0.25) 0%, transparent 70%);
+  }
+  .bg1::after {
+    width: 160px; height: 160px;
+    bottom: 20%; right: 20%;
+    background: radial-gradient(circle, rgba(20,184,166,0.2) 0%, transparent 70%);
+  }
+  .bg1 .orb1 {
+    position: absolute; width: 100px; height: 100px; border-radius: 50%;
+    top: 60%; left: 50%;
+    background: radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%);
+    filter: blur(40px);
+  }
+  .bg1 .orb2 {
+    position: absolute; width: 80px; height: 80px; border-radius: 50%;
+    top: 10%; right: 25%;
+    background: radial-gradient(circle, rgba(6,182,212,0.2) 0%, transparent 70%);
+    filter: blur(35px);
+  }
+  .bg1 .orb3 {
+    position: absolute; width: 120px; height: 120px; border-radius: 50%;
+    bottom: 5%; left: 35%;
+    background: radial-gradient(circle, rgba(16,185,129,0.15) 0%, transparent 70%);
+    filter: blur(50px);
+  }
+
+  /* ═══ OPTION 2: Hexagonal Grid ═══ */
+  .bg2 {
+    background: #0B0F19;
+  }
+  .bg2::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100' viewBox='0 0 56 100'%3E%3Cpath d='M28 66L0 50V16l28-16 28 16v34L28 66zm0 34L0 84V50l28-16 28 16v34L28 100z' fill='none' stroke='%2310b981' stroke-width='0.5' stroke-opacity='0.12'/%3E%3C/svg%3E");
+    opacity: 0.5;
+  }
+  .bg2::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at center, transparent 30%, #0B0F19 75%);
+  }
+
+  /* ═══ OPTION 3: Aurora Waves ═══ */
+  .bg3 {
+    background: #0B0F19;
+  }
+  .bg3::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -20%; right: -20%;
+    height: 200%;
+    background:
+      radial-gradient(ellipse 80% 50% at 30% 20%, rgba(16,185,129,0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 70% 30%, rgba(20,184,166,0.1) 0%, transparent 55%),
+      radial-gradient(ellipse 90% 30% at 50% 60%, rgba(6,182,212,0.08) 0%, transparent 50%);
+    transform: rotate(-12deg);
+  }
+  .bg3::after {
+    content: '';
+    position: absolute;
+    top: -30%; left: -10%; right: -10%;
+    height: 160%;
+    background:
+      radial-gradient(ellipse 70% 35% at 60% 25%, rgba(16,185,129,0.1) 0%, transparent 55%),
+      radial-gradient(ellipse 50% 45% at 35% 50%, rgba(52,211,153,0.07) 0%, transparent 50%);
+    transform: rotate(8deg);
+  }
+
+  /* ═══ OPTION 4: Mesh Gradient Blobs ═══ */
+  .bg4 {
+    background: #0B0F19;
+  }
+  .bg4::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(circle 300px at 20% 30%, rgba(16,185,129,0.15) 0%, transparent 100%),
+      radial-gradient(circle 250px at 80% 20%, rgba(99,102,241,0.12) 0%, transparent 100%),
+      radial-gradient(circle 350px at 60% 80%, rgba(20,184,166,0.1) 0%, transparent 100%),
+      radial-gradient(circle 200px at 30% 70%, rgba(139,92,246,0.08) 0%, transparent 100%);
+    filter: blur(20px);
+  }
+
+  /* ═══ OPTION 5: Constellation ═══ */
+  .bg5 {
+    background: #0B0F19;
+  }
+  .bg5::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Ccircle cx='50' cy='80' r='1.5' fill='%2310b981' opacity='0.6'/%3E%3Ccircle cx='150' cy='40' r='1' fill='%2394a3b8' opacity='0.4'/%3E%3Ccircle cx='250' cy='100' r='1.8' fill='%2310b981' opacity='0.5'/%3E%3Ccircle cx='350' cy='60' r='1' fill='%2394a3b8' opacity='0.3'/%3E%3Ccircle cx='100' cy='180' r='1.2' fill='%2306b6d4' opacity='0.5'/%3E%3Ccircle cx='200' cy='200' r='2' fill='%2310b981' opacity='0.4'/%3E%3Ccircle cx='300' cy='150' r='1' fill='%2394a3b8' opacity='0.3'/%3E%3Ccircle cx='80' cy='300' r='1.5' fill='%2394a3b8' opacity='0.4'/%3E%3Ccircle cx='180' cy='330' r='1' fill='%2310b981' opacity='0.5'/%3E%3Ccircle cx='320' cy='280' r='1.8' fill='%2306b6d4' opacity='0.4'/%3E%3Ccircle cx='380' cy='350' r='1' fill='%2394a3b8' opacity='0.3'/%3E%3Ccircle cx='30' cy='370' r='1.2' fill='%2310b981' opacity='0.4'/%3E%3Cline x1='50' y1='80' x2='150' y2='40' stroke='%2310b981' stroke-width='0.3' opacity='0.15'/%3E%3Cline x1='150' y1='40' x2='250' y2='100' stroke='%2394a3b8' stroke-width='0.3' opacity='0.1'/%3E%3Cline x1='250' y1='100' x2='350' y2='60' stroke='%2310b981' stroke-width='0.3' opacity='0.12'/%3E%3Cline x1='100' y1='180' x2='200' y2='200' stroke='%2306b6d4' stroke-width='0.3' opacity='0.12'/%3E%3Cline x1='200' y1='200' x2='300' y2='150' stroke='%2394a3b8' stroke-width='0.3' opacity='0.1'/%3E%3Cline x1='50' y1='80' x2='100' y2='180' stroke='%2394a3b8' stroke-width='0.3' opacity='0.08'/%3E%3Cline x1='250' y1='100' x2='200' y2='200' stroke='%2310b981' stroke-width='0.3' opacity='0.1'/%3E%3Cline x1='80' y1='300' x2='180' y2='330' stroke='%2310b981' stroke-width='0.3' opacity='0.12'/%3E%3Cline x1='320' y1='280' x2='380' y2='350' stroke='%2306b6d4' stroke-width='0.3' opacity='0.1'/%3E%3Cline x1='300' y1='150' x2='320' y2='280' stroke='%2394a3b8' stroke-width='0.3' opacity='0.08'/%3E%3Cline x1='180' y1='330' x2='320' y2='280' stroke='%2310b981' stroke-width='0.3' opacity='0.1'/%3E%3Cline x1='30' y1='370' x2='80' y2='300' stroke='%2394a3b8' stroke-width='0.3' opacity='0.1'/%3E%3C/svg%3E");
+    opacity: 0.8;
+  }
+  .bg5::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, #0B0F19 80%);
+  }
+</style>
+</head>
+<body>
+  <h1>🎨 Pick Your Background</h1>
+  <p class="subtitle">Reply with the number (1–5) you like best!</p>
+
+  <div class="grid">
+    <!-- Option 1 -->
+    <div class="option">
+      <div class="bg-box bg1">
+        <div class="orb1"></div>
+        <div class="orb2"></div>
+        <div class="orb3"></div>
+      </div>
+      <div class="label">
+        <h3><span class="num">1</span>Bokeh Glow Orbs</h3>
+        <p>Soft floating emerald & teal light circles — dreamy and elegant</p>
+      </div>
+    </div>
+
+    <!-- Option 2 -->
+    <div class="option">
+      <div class="bg-box bg2"></div>
+      <div class="label">
+        <h3><span class="num">2</span>Hexagonal Grid</h3>
+        <p>Subtle honeycomb wireframe mesh — high-tech medical network vibe</p>
+      </div>
+    </div>
+
+    <!-- Option 3 -->
+    <div class="option">
+      <div class="bg-box bg3"></div>
+      <div class="label">
+        <h3><span class="num">3</span>Aurora Waves</h3>
+        <p>Flowing northern lights ribbons — ethereal and premium</p>
+      </div>
+    </div>
+
+    <!-- Option 4 -->
+    <div class="option">
+      <div class="bg-box bg4"></div>
+      <div class="label">
+        <h3><span class="num">4</span>Mesh Gradient Blobs</h3>
+        <p>Large blurred color blobs — modern Apple/Stripe style</p>
+      </div>
+    </div>
+
+    <!-- Option 5 -->
+    <div class="option">
+      <div class="bg-box bg5"></div>
+      <div class="label">
+        <h3><span class="num">5</span>Constellation Particles</h3>
+        <p>Connected dots like a neural network — futuristic data feel</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
