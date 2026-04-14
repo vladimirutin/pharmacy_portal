@@ -223,7 +223,18 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen min-h-[100dvh] bg-[#060D18]">
+    <div className="min-h-screen min-h-[100dvh] bg-[#0B0F19] relative overflow-hidden">
+      {/* Background layers */}
+      <div className="absolute inset-0 pointer-events-none z-0">
+        <div className="absolute inset-0 bg-[#0B0F19]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-emerald-900/30 via-[#0B0F19] to-black opacity-90" />
+        {/* Layer 1: Hexagonal Grid */}
+        <div className="absolute inset-0 opacity-50 mix-blend-screen" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100' viewBox='0 0 56 100'%3E%3Cpath d='M28 66L0 50V16l28-16 28 16v34L28 66zm0 34L0 84V50l28-16 28 16v34L28 100z' fill='none' stroke='%2310b981' stroke-width='0.5' stroke-opacity='0.15'/%3E%3C/svg%3E\")" }} />
+        {/* Layer 2: Hex grid edge fade */}
+        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, transparent 30%, #0B0F19 75%)' }} />
+        {/* Layer 3: Constellation particles */}
+        <div className="absolute inset-0 opacity-80 mix-blend-screen" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Ccircle cx='50' cy='80' r='1.5' fill='%2310b981' opacity='0.6'/%3E%3Ccircle cx='150' cy='40' r='1' fill='%2394a3b8' opacity='0.4'/%3E%3Ccircle cx='250' cy='100' r='1.8' fill='%2310b981' opacity='0.5'/%3E%3Ccircle cx='350' cy='60' r='1' fill='%2394a3b8' opacity='0.3'/%3E%3Ccircle cx='100' cy='180' r='1.2' fill='%2306b6d4' opacity='0.5'/%3E%3Ccircle cx='200' cy='200' r='2' fill='%2310b981' opacity='0.4'/%3E%3Ccircle cx='300' cy='150' r='1' fill='%2394a3b8' opacity='0.3'/%3E%3Ccircle cx='80' cy='300' r='1.5' fill='%2394a3b8' opacity='0.4'/%3E%3Ccircle cx='180' cy='330' r='1' fill='%2310b981' opacity='0.5'/%3E%3Ccircle cx='320' cy='280' r='1.8' fill='%2306b6d4' opacity='0.4'/%3E%3Ccircle cx='380' cy='350' r='1' fill='%2394a3b8' opacity='0.3'/%3E%3Ccircle cx='30' cy='370' r='1.2' fill='%2310b981' opacity='0.4'/%3E%3Cline x1='50' y1='80' x2='150' y2='40' stroke='%2310b981' stroke-width='0.3' opacity='0.15'/%3E%3Cline x1='150' y1='40' x2='250' y2='100' stroke='%2394a3b8' stroke-width='0.3' opacity='0.1'/%3E%3Cline x1='250' y1='100' x2='350' y2='60' stroke='%2310b981' stroke-width='0.3' opacity='0.12'/%3E%3Cline x1='100' y1='180' x2='200' y2='200' stroke='%2306b6d4' stroke-width='0.3' opacity='0.12'/%3E%3Cline x1='200' y1='200' x2='300' y2='150' stroke='%2394a3b8' stroke-width='0.3' opacity='0.1'/%3E%3Cline x1='50' y1='80' x2='100' y2='180' stroke='%2394a3b8' stroke-width='0.3' opacity='0.08'/%3E%3Cline x1='250' y1='100' x2='200' y2='200' stroke='%2310b981' stroke-width='0.3' opacity='0.1'/%3E%3Cline x1='80' y1='300' x2='180' y2='330' stroke='%2310b981' stroke-width='0.3' opacity='0.12'/%3E%3Cline x1='320' y1='280' x2='380' y2='350' stroke='%2306b6d4' stroke-width='0.3' opacity='0.1'/%3E%3Cline x1='300' y1='150' x2='320' y2='280' stroke='%2394a3b8' stroke-width='0.3' opacity='0.08'/%3E%3Cline x1='180' y1='330' x2='320' y2='280' stroke='%2310b981' stroke-width='0.3' opacity='0.1'/%3E%3Cline x1='30' y1='370' x2='80' y2='300' stroke='%2394a3b8' stroke-width='0.3' opacity='0.1'/%3E%3C/svg%3E\")" }} />
+      </div>
 
       {/* ── In-App ID Verification Warning Modal ── */}
       {showIdWarning && (
