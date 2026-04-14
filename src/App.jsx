@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { db } from './config/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, query, where, onSnapshot, addDoc, serverTimestamp, getDocs } from 'firebase/firestore';
 import AuthScreen from './components/AuthScreen';
 
 function App() {
@@ -24,6 +24,55 @@ function App() {
   // Error notification state
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  // ═══ NEW: View, Broadcasts, Settings, Support state ═══
+  const [activeView, setActiveView] = useState('dispense');
+  const [broadcasts, setBroadcasts] = useState([]);
+  const [dismissedBroadcasts, setDismissedBroadcasts] = useState([]);
+  const [settingsTab, setSettingsTab] = useState('profile');
+  const [supportTickets, setSupportTickets] = useState([]);
+  const [showNewTicket, setShowNewTicket] = useState(false);
+  const [ticketForm, setTicketForm] = useState({ subject: '', message: '', priority: 'normal' });
+  const [ticketLoading, setTicketLoading] = useState(false);
+  const [profileForm, setProfileForm] = useState({ pharmacyName: '' });
+  const [passwordForm, setPasswordForm] = useState({ current: '', newPw: '', confirm: '' });
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
+
+  // ═══ Broadcast listener ═══
+  useEffect(() => {
+    if (!currentUser) return;
+    const q = query(collection(db, 'artifacts', 'medivend-local', 'public', 'data', 'broadcasts'));
+    const unsub = onSnapshot(q, (snap) => {
+      const items = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .filter(b => b.active !== false && (b.target === 'all' || b.target === 'pharmacists'))
+        .sort((a, b) => (b.timestamp?.toMillis?.() || 0) - (a.timestamp?.toMillis?.() || 0));
+      setBroadcasts(items);
+    });
+    return () => unsub();
+  }, [currentUser]);
+
+  // ═══ Support tickets listener ═══
+  useEffect(() => {
+    if (!currentUser) return;
+    const q = query(
+      collection(db, 'artifacts', 'medivend-local', 'public', 'data', 'support_tickets'),
+      where('senderEmail', '==', currentUser.email)
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      const items = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (b.timestamp?.toMillis?.() || 0) - (a.timestamp?.toMillis?.() || 0));
+      setSupportTickets(items);
+    });
+    return () => unsub();
+  }, [currentUser]);
+
+  // ═══ Initialize profile form when user changes ═══
+  useEffect(() => {
+    if (currentUser) {
+      setProfileForm({ pharmacyName: currentUser.pharmacyName || '' });
+    }
+  }, [currentUser]);
 
   const showSuccessNotification = (msg) => {
     setSuccessMessage(msg);
@@ -218,6 +267,98 @@ function App() {
     }
   };
 
+  // ═══ Settings Handlers ═══
+  const handleSaveProfile = async () => {
+    if (!profileForm.pharmacyName.trim()) return;
+    setProfileSaving(true);
+    try {
+      const q = query(
+        collection(db, 'artifacts', 'medivend-local', 'public', 'data', 'pharmacists'),
+        where('email', '==', currentUser.email)
+      );
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        await updateDoc(snap.docs[0].ref, { pharmacyName: profileForm.pharmacyName.trim() });
+        setCurrentUser(prev => ({ ...prev, pharmacyName: profileForm.pharmacyName.trim() }));
+        showSuccessNotification('Pharmacy name updated successfully!');
+      }
+    } catch (err) {
+      console.error(err);
+      showErrorNotification('Failed to update profile.');
+    }
+    setProfileSaving(false);
+  };
+
+  const handleChangePassword = async () => {
+    if (!passwordForm.current || !passwordForm.newPw || !passwordForm.confirm) {
+      showErrorNotification('Please fill all password fields.');
+      return;
+    }
+    if (passwordForm.current !== currentUser.password) {
+      showErrorNotification('Current password is incorrect.');
+      return;
+    }
+    if (passwordForm.newPw.length < 6) {
+      showErrorNotification('New password must be at least 6 characters.');
+      return;
+    }
+    if (passwordForm.newPw !== passwordForm.confirm) {
+      showErrorNotification('New passwords do not match.');
+      return;
+    }
+    setPasswordSaving(true);
+    try {
+      const q = query(
+        collection(db, 'artifacts', 'medivend-local', 'public', 'data', 'pharmacists'),
+        where('email', '==', currentUser.email)
+      );
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        await updateDoc(snap.docs[0].ref, { password: passwordForm.newPw });
+        setCurrentUser(prev => ({ ...prev, password: passwordForm.newPw }));
+        setPasswordForm({ current: '', newPw: '', confirm: '' });
+        showSuccessNotification('Password changed successfully!');
+      }
+    } catch (err) {
+      console.error(err);
+      showErrorNotification('Failed to change password.');
+    }
+    setPasswordSaving(false);
+  };
+
+  const handleSubmitTicket = async () => {
+    if (!ticketForm.subject.trim() || !ticketForm.message.trim()) return;
+    setTicketLoading(true);
+    try {
+      await addDoc(collection(db, 'artifacts', 'medivend-local', 'public', 'data', 'support_tickets'), {
+        subject: ticketForm.subject.trim(),
+        message: ticketForm.message.trim(),
+        priority: ticketForm.priority,
+        status: 'open',
+        sender: currentUser.pharmacyName || currentUser.name,
+        senderEmail: currentUser.email,
+        type: 'pharmacy_issue',
+        timestamp: serverTimestamp(),
+      });
+      setTicketForm({ subject: '', message: '', priority: 'normal' });
+      setShowNewTicket(false);
+      showSuccessNotification('Support ticket submitted successfully!');
+    } catch (err) {
+      console.error(err);
+      showErrorNotification('Failed to submit ticket.');
+    }
+    setTicketLoading(false);
+  };
+
+  const activeBroadcasts = broadcasts.filter(b => !dismissedBroadcasts.includes(b.id));
+  const getBroadcastColor = (priority) => {
+    switch (priority) {
+      case 'high': return { bg: 'bg-rose-500/10', border: 'border-rose-500/20', text: 'text-rose-300', icon: '🚨' };
+      case 'medium': return { bg: 'bg-amber-500/10', border: 'border-amber-500/20', text: 'text-amber-300', icon: '⚠️' };
+      default: return { bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', text: 'text-emerald-300', icon: '📢' };
+    }
+  };
+
   if (!currentUser) {
     return <AuthScreen onLogin={setCurrentUser} />;
   }
@@ -337,8 +478,33 @@ function App() {
             </div>
           </div>
           
-          {/* Right: User Info + Sign Out */}
+          {/* Right: Nav + User Info + Sign Out */}
           <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            {/* Nav Buttons */}
+            <div className="flex items-center bg-white/[0.03] rounded-lg border border-white/[0.06] p-0.5">
+              <button
+                onClick={() => setActiveView('dispense')}
+                className={`px-2.5 py-1.5 text-[11px] sm:text-xs font-bold rounded-md transition-all ${activeView === 'dispense' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : 'text-slate-500 hover:text-white border border-transparent'}`}
+              >
+                💊 Dispense
+              </button>
+              <button
+                onClick={() => setActiveView('settings')}
+                className={`px-2.5 py-1.5 text-[11px] sm:text-xs font-bold rounded-md transition-all relative ${activeView === 'settings' ? 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/20' : 'text-slate-500 hover:text-white border border-transparent'}`}
+              >
+                ⚙️ Settings
+              </button>
+            </div>
+
+            {/* Broadcast indicator */}
+            {activeBroadcasts.length > 0 && (
+              <div className="relative">
+                <span className="text-base cursor-default" title={`${activeBroadcasts.length} active broadcast(s)`}>📢</span>
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center animate-pulse">{activeBroadcasts.length}</span>
+              </div>
+            )}
+
+            <div className="hidden md:block w-px h-7 bg-white/[0.08]" />
             <div className="hidden md:block text-right">
               <p className="text-[13px] font-semibold text-white">{currentUser?.name}</p>
               <p className="text-[11px] text-slate-500">PRC #{currentUser?.licenseNumber}</p>
@@ -354,7 +520,30 @@ function App() {
         </div>
       </header>
 
+      {/* ═══ BROADCAST BANNER ═══ */}
+      {activeBroadcasts.length > 0 && (
+        <div className="container-responsive pt-3 space-y-2">
+          {activeBroadcasts.map(b => {
+            const color = getBroadcastColor(b.priority);
+            return (
+              <div key={b.id} className={`animate-broadcast-slide ${color.bg} ${color.border} border rounded-xl px-4 py-3 flex items-start gap-3 ${b.priority === 'high' ? 'animate-broadcast-pulse' : ''}`}>
+                <span className="text-base flex-shrink-0 mt-0.5">{color.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-[13px] font-bold ${color.text}`}>System Broadcast</p>
+                  <p className="text-[12px] text-slate-300 mt-0.5 leading-relaxed">{b.message}</p>
+                  {b.timestamp && (
+                    <p className="text-[10px] text-slate-500 mt-1">{new Date(b.timestamp.toMillis()).toLocaleString()}</p>
+                  )}
+                </div>
+                <button onClick={() => setDismissedBroadcasts(prev => [...prev, b.id])} className="text-slate-500 hover:text-white text-sm transition-colors flex-shrink-0 p-1">✕</button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* ════════════════════════ MAIN CONTENT ════════════════════════ */}
+      {activeView === 'dispense' && (
       <main className="container-responsive py-4 sm:py-6 flex-1">
         
         {/* ─── Prescription Lookup ─── */}
@@ -683,6 +872,234 @@ function App() {
           </div>
         )}
       </main>
+      )}
+
+      {/* ════════════════════════ SETTINGS VIEW ════════════════════════ */}
+      {activeView === 'settings' && (
+      <main className="container-responsive py-4 sm:py-6 flex-1">
+        {/* Tab Navigation */}
+        <div className="flex items-center gap-1 mb-5 bg-white/[0.03] rounded-xl border border-white/[0.06] p-1">
+          {[
+            { id: 'profile', label: '🏥 Profile', },
+            { id: 'security', label: '🔒 Security', },
+            { id: 'support', label: '🎫 Support', },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setSettingsTab(tab.id)}
+              className={`flex-1 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all ${settingsTab === tab.id ? 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/20 settings-tab-active' : 'text-slate-500 hover:text-white border border-transparent'}`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* ─── Profile Tab ─── */}
+        {settingsTab === 'profile' && (
+          <div className="glass-card p-5 sm:p-6 animate-scale-in">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/15 flex items-center justify-center"><span className="text-lg">🏥</span></div>
+              <div>
+                <h2 className="text-base font-bold text-white">Pharmacy Profile</h2>
+                <p className="text-[11px] text-slate-500">Update your pharmacy information</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {/* Read-only info */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {[
+                  { label: 'Registered Name', value: currentUser?.name, icon: '👤' },
+                  { label: 'Email Address', value: currentUser?.email, icon: '📧' },
+                  { label: 'PRC License', value: currentUser?.licenseNumber, icon: '🏅' },
+                ].map(field => (
+                  <div key={field.label} className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.05]">
+                    <p className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-500 mb-1">{field.icon} {field.label}</p>
+                    <p className="text-sm text-slate-300 font-medium">{field.value || '—'}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Editable pharmacy name */}
+              <div>
+                <label className="block text-[9px] font-black uppercase tracking-[0.15em] mb-2 text-slate-500">🏥 Pharmacy Name</label>
+                <input
+                  type="text"
+                  value={profileForm.pharmacyName}
+                  onChange={(e) => setProfileForm({ pharmacyName: e.target.value })}
+                  className="input-field"
+                  placeholder="Enter pharmacy name"
+                />
+              </div>
+
+              <button onClick={handleSaveProfile} disabled={profileSaving || !profileForm.pharmacyName.trim()}
+                className="btn-emerald px-6 py-2.5 text-sm flex items-center gap-2">
+                {profileSaving ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : '💾'} Save Changes
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ─── Security Tab ─── */}
+        {settingsTab === 'security' && (
+          <div className="glass-card p-5 sm:p-6 animate-scale-in">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/15 flex items-center justify-center"><span className="text-lg">🔒</span></div>
+              <div>
+                <h2 className="text-base font-bold text-white">Change Password</h2>
+                <p className="text-[11px] text-slate-500">Update your account password</p>
+              </div>
+            </div>
+
+            <div className="space-y-4 max-w-md">
+              <div>
+                <label className="block text-[9px] font-black uppercase tracking-[0.15em] mb-2 text-slate-500">Current Password</label>
+                <input 
+                  type="password" 
+                  value={passwordForm.current} 
+                  onChange={(e) => setPasswordForm(f => ({ ...f, current: e.target.value }))}
+                  className="input-field" 
+                  placeholder="Enter current password" 
+                />
+              </div>
+              <div>
+                <label className="block text-[9px] font-black uppercase tracking-[0.15em] mb-2 text-slate-500">New Password</label>
+                <input 
+                  type="password" 
+                  value={passwordForm.newPw} 
+                  onChange={(e) => setPasswordForm(f => ({ ...f, newPw: e.target.value }))}
+                  className="input-field" 
+                  placeholder="Enter new password (min 6 chars)" 
+                />
+              </div>
+              <div>
+                <label className="block text-[9px] font-black uppercase tracking-[0.15em] mb-2 text-slate-500">Confirm New Password</label>
+                <input 
+                  type="password" 
+                  value={passwordForm.confirm} 
+                  onChange={(e) => setPasswordForm(f => ({ ...f, confirm: e.target.value }))}
+                  className="input-field" 
+                  placeholder="Re-enter new password" 
+                />
+              </div>
+
+              <button onClick={handleChangePassword} disabled={passwordSaving}
+                className="btn-indigo px-6 py-2.5 text-sm flex items-center gap-2">
+                {passwordSaving ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : '🔑'} Update Password
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ─── Support Tab ─── */}
+        {settingsTab === 'support' && (
+          <div className="animate-scale-in space-y-4">
+            {/* Header + New Ticket Button */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/15 flex items-center justify-center"><span className="text-lg">🎫</span></div>
+                <div>
+                  <h2 className="text-base font-bold text-white">Support Tickets</h2>
+                  <p className="text-[11px] text-slate-500">{supportTickets.length} ticket(s) submitted</p>
+                </div>
+              </div>
+              <button onClick={() => setShowNewTicket(!showNewTicket)} className="btn-emerald px-4 py-2 text-xs flex items-center gap-1.5">
+                {showNewTicket ? '✕ Cancel' : '+ New Ticket'}
+              </button>
+            </div>
+
+            {/* New Ticket Form */}
+            {showNewTicket && (
+              <div className="glass-card p-5 animate-slide-up">
+                <h3 className="text-sm font-bold text-white mb-4">Submit a Support Ticket</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-[9px] font-black uppercase tracking-[0.15em] mb-2 text-slate-500">Subject</label>
+                    <input 
+                      type="text" 
+                      value={ticketForm.subject} 
+                      onChange={(e) => setTicketForm(f => ({ ...f, subject: e.target.value }))}
+                      className="input-field" 
+                      placeholder="Brief description of the issue" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] font-black uppercase tracking-[0.15em] mb-2 text-slate-500">Priority</label>
+                    <select 
+                      value={ticketForm.priority} 
+                      onChange={(e) => setTicketForm(f => ({ ...f, priority: e.target.value }))}
+                      className="input-field"
+                    >
+                      <option value="low">🟢 Low</option>
+                      <option value="normal">🟡 Normal</option>
+                      <option value="high">🔴 High</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[9px] font-black uppercase tracking-[0.15em] mb-2 text-slate-500">Message</label>
+                    <textarea 
+                      value={ticketForm.message} 
+                      onChange={(e) => setTicketForm(f => ({ ...f, message: e.target.value }))}
+                      className="input-field min-h-[100px] resize-y" 
+                      placeholder="Describe the issue in detail..." 
+                    />
+                  </div>
+                  <button onClick={handleSubmitTicket} disabled={ticketLoading || !ticketForm.subject.trim() || !ticketForm.message.trim()}
+                    className="btn-indigo px-6 py-2.5 text-sm flex items-center gap-2">
+                    {ticketLoading ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : '📤'} Submit Ticket
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Ticket List */}
+            {supportTickets.length === 0 ? (
+              <div className="glass-card p-8 text-center">
+                <span className="text-4xl block mb-3">📭</span>
+                <p className="text-slate-400 font-bold text-sm">No tickets yet</p>
+                <p className="text-slate-500 text-xs mt-1">Submit a ticket if you need help</p>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {supportTickets.map(ticket => {
+                  const statusColors = {
+                    open: { bg: 'bg-blue-500/10', border: 'border-blue-500/20', text: 'text-blue-400', label: 'Open' },
+                    in_progress: { bg: 'bg-amber-500/10', border: 'border-amber-500/20', text: 'text-amber-400', label: 'In Progress' },
+                    resolved: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', text: 'text-emerald-400', label: 'Resolved' },
+                  };
+                  const s = statusColors[ticket.status] || statusColors.open;
+                  const priorityIcons = { high: '🔴', normal: '🟡', low: '🟢' };
+                  return (
+                    <div key={ticket.id} className="glass-card p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs">{priorityIcons[ticket.priority] || '🟡'}</span>
+                            <h3 className="text-sm font-bold text-white truncate">{ticket.subject}</h3>
+                          </div>
+                          <p className="text-[12px] text-slate-400 line-clamp-2">{ticket.message}</p>
+                          {ticket.timestamp && (
+                            <p className="text-[10px] text-slate-500 mt-1.5">{new Date(ticket.timestamp.toMillis()).toLocaleString()}</p>
+                          )}
+                          {ticket.adminReply && (
+                            <div className="mt-2.5 p-2.5 rounded-lg bg-indigo-500/10 border border-indigo-500/15">
+                              <p className="text-[10px] font-bold text-indigo-400 mb-0.5">💬 Admin Reply</p>
+                              <p className="text-[12px] text-slate-300">{ticket.adminReply}</p>
+                            </div>
+                          )}
+                        </div>
+                        <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${s.bg} ${s.border} border ${s.text} flex-shrink-0`}>{s.label}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </main>
+      )}
+
 
       {/* ═══ Mobile User Info Bar (bottom) ═══ */}
       <div className="md:hidden sticky bottom-0 z-30 border-t border-white/[0.06] bg-[#060D18]/90 backdrop-blur-xl px-4 py-2.5 flex items-center justify-between">

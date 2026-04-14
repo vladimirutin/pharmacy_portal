@@ -208,3 +208,49 @@ input[type="number"] {
 @media (min-width: 1280px) {
   .container-responsive { @apply max-w-7xl; }
 }
+
+/* Broadcast banner */
+@keyframes broadcast-slide {
+  from { opacity: 0; transform: translateY(-100%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-broadcast-slide {
+  animation: broadcast-slide 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes broadcast-pulse-border {
+  0%, 100% { border-color: rgba(244, 63, 94, 0.3); }
+  50% { border-color: rgba(244, 63, 94, 0.6); }
+}
+.animate-broadcast-pulse {
+  animation: broadcast-pulse-border 2s ease-in-out infinite;
+}
+
+/* Settings tab active glow */
+.settings-tab-active {
+  position: relative;
+}
+.settings-tab-active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #10b981, transparent);
+  border-radius: 2px;
+}
+
+/* Modal backdrop */
+@keyframes modal-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-modal-fade {
+  animation: modal-fade 0.25s ease forwards;
+}
+
+/* No-scrollbar utility */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
